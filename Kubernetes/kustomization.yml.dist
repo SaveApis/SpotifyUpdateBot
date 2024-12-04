@@ -1,0 +1,22 @@
+﻿namespace: spotifyupdatebot
+resources:
+  - namespace.yaml
+  - redis/deployment.yaml
+  - redis/service.yaml
+  - bot/deployment.yaml
+
+secretGenerator:
+  - name: bot
+    literals:
+      - token=${BOT_TOKEN}
+  - name: mysql
+    literals:
+      - host=${DB_HOST}
+      - port=${DB_PORT}
+      - user=${DB_USER}
+      - password=${DB_PASSWORD}
+      - database=${DB_DATABASE}
+  - name: spotify
+    literals:
+      - client_id=${SPOTIFY_CLIENT_ID}
+      - client_secret=${SPOTIFY_CLIENT_SECRET}

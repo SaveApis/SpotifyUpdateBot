@@ -1,0 +1,72 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bot
+  labels:
+    app: bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bot
+  template:
+    metadata:
+      name: bot
+      labels:
+        app: bot
+    spec:
+      initContainers:
+        - name: wait-for-redis
+          image: busybox
+          command: [ 'sh', '-c', 'until nslookup redis.spotifyupdatebot.svc.cluster.local; do echo waiting for redis-service; sleep 2; done;' ]
+      containers:
+        - name: bot
+          image: bot:${VERSION}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: token
+              valueFrom:
+                secretKeyRef:
+                  name: bot
+                  key: token
+            - name: db_host
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: host
+            - name: db_port
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: port
+            - name: db_user
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: user
+            - name: db_password
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: password
+            - name: db_database
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: database
+            - name: redis_host
+              value: redis.spotifyupdatebot.svc.cluster.local
+            - name: redis_port
+              value: "6379"
+            - name: spotify_client_id
+              valueFrom:
+                secretKeyRef:
+                  name: spotify
+                  key: client_id
+            - name: spotify_client_secret
+              valueFrom:
+                secretKeyRef:
+                  name: spotify
+                  key: client_secret
+      restartPolicy: Always
+      
