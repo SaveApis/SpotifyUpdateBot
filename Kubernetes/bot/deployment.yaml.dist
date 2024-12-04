@@ -21,7 +21,7 @@ spec:
           command: [ 'sh', '-c', 'until nslookup redis.spotifyupdatebot.svc.cluster.local; do echo waiting for redis-service; sleep 2; done;' ]
       containers:
         - name: bot
-          image: bot:${VERSION}
+          image: registry.digitalocean.com/saveapis/spotifyupdatebot:${VERSION}
           imagePullPolicy: IfNotPresent
           env:
             - name: token
