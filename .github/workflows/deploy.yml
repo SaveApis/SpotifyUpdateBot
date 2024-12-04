@@ -1,0 +1,56 @@
+﻿name: Deploy
+on:
+  workflow_run:
+    types:
+      - completed
+    workflows:
+      - "CD"
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4.1.0
+        with:
+          dotnet-version: 9.0.x
+      - name: Restore tools
+        run: dotnet tool restore
+      - name: Read Version
+        id: version
+        run: echo "version=$(dotnet versionize inspect)" >> $GITHUB_OUTPUT
+      - name: Setup Kubectl
+        uses: azure/setup-kubectl@v4
+      - name: Setup Doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_REGISTRY_TOKEN }}
+      - name: Copy kubeconfig
+        run: doctl kubernetes cluster config save saveapis
+
+      - name: Render bot deployment
+        uses: nowactions/envsubst@v1.0.1
+        with:
+          input: ./Kubernetes/bot/deployment.yaml.dist
+          output: ./Kubernetes/bot/deployment.yaml
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+      - name: Render kustomization
+        uses: nowactions/envsubst@v1.0.1
+        with:
+          input: ./Kubernetes/kustomization.yaml.dist
+          output: ./Kubernetes/kustomization.yaml
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+
+      - name: Deploy
+        run: kubectl apply -k ./Kubernetes

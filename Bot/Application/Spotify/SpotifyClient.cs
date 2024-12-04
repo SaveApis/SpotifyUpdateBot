@@ -16,10 +16,13 @@ public class SpotifyClient(
     IHttpClientFactory factory)
     : ISpotifyClient
 {
-    public async Task<string> LoginAsync()
+    public async Task<string> LoginAsync(bool cacheFirst = true)
     {
-        var cacheValue = await provider.GetAsync<string>("spotify_access_token");
-        if (cacheValue.HasValue) return cacheValue.Value;
+        if (cacheFirst)
+        {
+            var cacheValue = await provider.GetAsync<string>("spotify_access_token");
+            if (cacheValue.HasValue) return cacheValue.Value;
+        }
 
         var clientId = configuration["spotify_client_id"] ??
                        throw new InvalidOperationException("Spotify ClientId not found");
@@ -61,7 +64,7 @@ public class SpotifyClient(
         var response = await client.SendAsync(request);
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
-            await LoginAsync();
+            await LoginAsync(false);
             return await GetPlaylistAsync(playlistId, cacheFirst);
         }
 
